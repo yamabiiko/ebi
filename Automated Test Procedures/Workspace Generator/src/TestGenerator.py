@@ -230,10 +230,10 @@ def main():
     parser.add_argument("-d", type=int, dest="depth", metavar="depth", default=4, help="Max depth of the directory tree")
     parser.add_argument("-b", type=int, dest="branch_factor", metavar="branch", default=4, help="Max Branching factor of the directory tree")
     parser.add_argument("-f", type=int, dest="max_files", metavar="files", default=5, help="Max number of files per directory")
-    parser.add_argument("-fs", type=int, dest="max_filesize", metavar="fsize", default=1000, help="Max size of the files in Bytes")
+    parser.add_argument("-fs", type=int, dest="max_filesize", metavar="bytes", default=1000, help="Max size of the files in Bytes")
     parser.add_argument("-t", type=int, dest="max_tags", metavar="tags", default=3, help="Max number of tags per file")
-    parser.add_argument('-v', action='version', version='%(prog)s 1.0', help="Show program's version number and exit")
-    parser.add_argument('-h', action='help', default=argparse.SUPPRESS, help='Show this help message and exit')
+    parser.add_argument('-v', "--version", action='version', version='%(prog)s 1.0', help="Show program's version number and exit")
+    parser.add_argument('-h', "--help", action='help', default=argparse.SUPPRESS, help='Show this help message and exit')
     args = parser.parse_args()
 
     generator = DirectoryGenerator(
