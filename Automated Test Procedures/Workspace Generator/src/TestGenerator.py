@@ -33,7 +33,6 @@ class DirectoryGenerator:
             tag_density (float): The probability that a path is tagged with an existing tag (if one exists).
             untagged_files (bool): Files can have no associated tags.
     """
-    def __init__(self, seed, depth, branch_factor, max_files, max_filesize, max_tags):
     def __init__(self, seed, depth, branch_factor, max_files, max_filesize, max_tags, tag_density, untagged_files):
         # Runtime Variables
         self.root_dir = None
@@ -75,22 +74,18 @@ class DirectoryGenerator:
         self.id_gen = sqids.Sqids(alphabet="".join(key_chars), min_length=8)
         console.print("Seed: " + str(self.seed), style="info")
         # Saves the Root directory
-        self.root_dir = os.path.abspath(os.path.join(os.getcwd(), "..", "..", ".."))
         self.root_dir = os.path.abspath(os.path.join(__file__, "..", "..", ".."))
         # Generates the Test directory (if it does not exist)
         src_dir = os.path.dirname(os.path.abspath(__file__))
-        test_dir = os.path.join(src_dir, "..", "..", "Tests")
         test_dir = os.path.abspath(os.path.join(src_dir, "..", "..", "Tests", "Workspaces", "Generated"))
         self.test_dir = test_dir
         try:
             os.makedirs(test_dir)
-            console.print("WARNING: Test directory does not exist. Creating one now.", style="warning")
             console.print("WARNING: Test directory does not exist. It will be created", style="warning")
         except FileExistsError:
             pass
         
     """
-        Generates a unique ID using the id_gen encoder and increments the id_counter.
         Generates a unique ID using the id_gen encoder (sqids) and increments the id_counter.
 
         Returns:
@@ -109,31 +104,24 @@ class DirectoryGenerator:
         Args:
             path (str): The path to be added to the .gitignore file.
     """
-    def _addGitignore(self, path):
-        gitignore_path = os.path.abspath(self.root_dir + "/.gitignore")
     def _addGitignore(self, path, dir=False):
         gitignore_path = os.path.join(self.root_dir, "..", ".gitignore")
         formatted_path = "/".join(path.split("\\")[-5:])
         with open(gitignore_path, "a") as gitignore_file:
-            gitignore_file.write(f"{path}\n")
-        
             if dir:
                 gitignore_file.write(f"{formatted_path}/\n")
             else:
                 gitignore_file.write(f"{formatted_path}\n")
                 
     """
-        Selects and returns a new tag (0.7) or an existing tag (0.3).
         Selects and returns a new tag (1-p) or an existing tag (p).
 
         Args:
-            p (float, optional): The probability of selecting an existing tag. Defaults to 0.3.
             p (float): The probability of selecting an existing tag.
 
         Returns:
             str: Tag.
     """
-    def _getTag(self, p=0.3):    
     def _getTag(self, p):
         n = random.random()
         if n < p and len(self.tags) > 0:
@@ -155,7 +143,6 @@ class DirectoryGenerator:
                 file.write(random.randbytes(bytes_to_write))
     
     """
-        Adds a tag to the specified path (file) and writes the path-tag pair to the tag file.
         Adds a tag to the specified path (file) and writes the path-tag pair to the tag file.  #[]
         Accepts a blacklist of tags, used to ensure that a tag-path link is unique.
 
@@ -167,7 +154,6 @@ class DirectoryGenerator:
             str: The tag that was added.
     """       
     def _addTag(self, path, blacklist=set()):
-        tag = self._getTag()
         tag = self._getTag(self.tag_density)
         while tag in blacklist:
             tag = self._getTag(self.tag_density)
