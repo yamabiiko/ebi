@@ -30,8 +30,11 @@ class DirectoryGenerator:
             max_files (int): The maximum number of files to generate in each directory.
             max_filesize (int): The maximum size of each file in Bytes.
             max_tags (int): The maximum number of tags to assign to each file.
+            tag_density (float): The probability that a path is tagged with an existing tag (if one exists).
+            untagged_files (bool): Files can have no associated tags.
     """
     def __init__(self, seed, depth, branch_factor, max_files, max_filesize, max_tags):
+    def __init__(self, seed, depth, branch_factor, max_files, max_filesize, max_tags, tag_density, untagged_files):
         # Runtime Variables
         self.root_dir = None
         self.test_dir = None
@@ -46,6 +49,8 @@ class DirectoryGenerator:
         self.max_files = max_files
         self.max_filesize = max_filesize    
         self.max_tags = max_tags
+        self.tag_density = tag_density
+        self.untagged_files = untagged_files
         # Test Environment Setup
         self._setup()
 
@@ -71,18 +76,22 @@ class DirectoryGenerator:
         console.print("Seed: " + str(self.seed), style="info")
         # Saves the Root directory
         self.root_dir = os.path.abspath(os.path.join(os.getcwd(), "..", "..", ".."))
+        self.root_dir = os.path.abspath(os.path.join(__file__, "..", "..", ".."))
         # Generates the Test directory (if it does not exist)
         src_dir = os.path.dirname(os.path.abspath(__file__))
         test_dir = os.path.join(src_dir, "..", "..", "Tests")
+        test_dir = os.path.abspath(os.path.join(src_dir, "..", "..", "Tests", "Workspaces", "Generated"))
         self.test_dir = test_dir
         try:
             os.makedirs(test_dir)
             console.print("WARNING: Test directory does not exist. Creating one now.", style="warning")
+            console.print("WARNING: Test directory does not exist. It will be created", style="warning")
         except FileExistsError:
             pass
         
     """
         Generates a unique ID using the id_gen encoder and increments the id_counter.
+        Generates a unique ID using the id_gen encoder (sqids) and increments the id_counter.
 
         Returns:
             str: The generated unique ID.
@@ -93,6 +102,8 @@ class DirectoryGenerator:
         return ID
     
     """
+        [DEPRECATED]
+        
         Adds the specified path to the .gitignore file located in the root directory.
 
         Args:
@@ -100,19 +111,30 @@ class DirectoryGenerator:
     """
     def _addGitignore(self, path):
         gitignore_path = os.path.abspath(self.root_dir + "/.gitignore")
+    def _addGitignore(self, path, dir=False):
+        gitignore_path = os.path.join(self.root_dir, "..", ".gitignore")
+        formatted_path = "/".join(path.split("\\")[-5:])
         with open(gitignore_path, "a") as gitignore_file:
             gitignore_file.write(f"{path}\n")
         
+            if dir:
+                gitignore_file.write(f"{formatted_path}/\n")
+            else:
+                gitignore_file.write(f"{formatted_path}\n")
+                
     """
         Selects and returns a new tag (0.7) or an existing tag (0.3).
+        Selects and returns a new tag (1-p) or an existing tag (p).
 
         Args:
             p (float, optional): The probability of selecting an existing tag. Defaults to 0.3.
+            p (float): The probability of selecting an existing tag.
 
         Returns:
             str: Tag.
     """
     def _getTag(self, p=0.3):    
+    def _getTag(self, p):
         n = random.random()
         if n < p and len(self.tags) > 0:
             return random.choice(list(self.tags))
@@ -134,6 +156,7 @@ class DirectoryGenerator:
     
     """
         Adds a tag to the specified path (file) and writes the path-tag pair to the tag file.
+        Adds a tag to the specified path (file) and writes the path-tag pair to the tag file.  #[]
         Accepts a blacklist of tags, used to ensure that a tag-path link is unique.
 
         Args:
@@ -145,8 +168,10 @@ class DirectoryGenerator:
     """       
     def _addTag(self, path, blacklist=set()):
         tag = self._getTag()
+        tag = self._getTag(self.tag_density)
         while tag in blacklist:
             tag = self._getTag()
+            tag = self._getTag(self.tag_density)
         self.tags.add(tag)
         self.tag_file.write(f"{path}\t{tag}\n")
         return tag
@@ -161,6 +186,8 @@ class DirectoryGenerator:
             ~ self.branch_factor (int, cli): The maximum number of branches at each level of the directory tree.
             ~ self.max_files (int, cli): The maximum number of files to generate in each directory.
             ~ self.max_tags (int, cli): The maximum number of tags to assign to each file.
+            ~ self.tag_density (float, cli): The probability that a path is tagged with an existing tag (if one exists).
+            ~ self.untagged_files (bool, cli): Files can have no associated tags.
     """
     def _generate(self, path, depth):
         # Generate Subdirectories
@@ -179,9 +206,18 @@ class DirectoryGenerator:
             self._writeFile(file_path)
             tagSet = set()
             for _ in range(random.randint(1, self.max_tags)):
+            if self.untagged_files:
+                min_tags = 1 
+            else:
+                min_tags = 0
+            for _ in range(random.randint(min_tags, self.max_tags)):
                 tag = self._addTag(os.path.basename(file_path), blacklist=tagSet)
                 tagSet.add(tag)
             
+                tagSet.add(tag)            
+                if len(self.tags) >= 1 and self.tag_density >= 0.99:
+                    break
+                
     """
         Generates a test environment with the specified name.
 
@@ -192,21 +228,32 @@ class DirectoryGenerator:
             FileExistsError: If the test directory already exists.
     """
     def generate(self, name):
+        tag = self.max_tags + 1
+        
         # Initialise Environment Variables
         self.id_counter = 0
         self.tags = set()
         # Create Test Directory
         test_path = os.path.join(self.test_dir, "Generated", name)
+        test_path = os.path.join(self.test_dir, name)
         os.makedirs(test_path)
+        ''' [DEPRECATED]
         # Add Test Directory to .gitignore
         self._addGitignore(test_path)
+        self._addGitignore(test_path, dir=True)```
+        '''
         # Create Tag File
         with open(os.path.join(self.test_dir, "Generated", name + ".tag"), "w") as tag_file:     
+        if os.path.exists(os.path.join(self.test_dir, name + ".tag")):
+            console.print("WARNING: Tag File already exists. It will be overwritten", style="critical")
+        with open(os.path.join(self.test_dir, name + ".tag"), "w") as tag_file:     
             self.tag_file = tag_file
             # Add Tag File to .gitignore
             self._addGitignore(os.path.join(self.test_dir, name + ".tag"))
             # Generate Test Directory
             self._generate(test_path, 0)
+            self.tag_file.flush()
+            self.tag_file.close()
 
 
 def main():
@@ -221,6 +268,8 @@ def main():
         -f, (int): Max number of files per directory (default: 5).
         -fs, (int): Max size of the files in Bytes (default: 1000).
         -t, (int): Max number of tags per file (default: 3).
+        -td, (float): Probability of assigning an existing tag (Min: 0.0, Max: 1.0) (default: 0.3).
+        -uf, (bool): Files can have no associated tags.
         -v, --version: Show program's version number and exit.
         -h, --help: Show help message and exit.
     """
@@ -232,6 +281,8 @@ def main():
     parser.add_argument("-f", type=int, dest="max_files", metavar="files", default=5, help="Max number of files per directory")
     parser.add_argument("-fs", type=int, dest="max_filesize", metavar="bytes", default=1000, help="Max size of the files in Bytes")
     parser.add_argument("-t", type=int, dest="max_tags", metavar="tags", default=3, help="Max number of tags per file")
+    parser.add_argument("-td", type=float, dest="tag_density", metavar="density", default=0.3, help="Probability of assigning an existing tag (Min: 0.0, Max: 1.0)")
+    parser.add_argument("-uf", dest="untagged_files", action="store_true", help="Files can have no associated tags")
     parser.add_argument('-v', "--version", action='version', version='%(prog)s 1.0', help="Show program's version number and exit")
     parser.add_argument('-h', "--help", action='help', default=argparse.SUPPRESS, help='Show this help message and exit')
     args = parser.parse_args()
@@ -243,6 +294,9 @@ def main():
         max_files=args.max_files,
         max_filesize=args.max_filesize,
         max_tags=args.max_tags
+        max_tags=args.max_tags,
+        tag_density=args.tag_density,
+        untagged_files=args.untagged_files
     )
     
     try:
