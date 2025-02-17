@@ -170,7 +170,6 @@ class DirectoryGenerator:
         tag = self._getTag()
         tag = self._getTag(self.tag_density)
         while tag in blacklist:
-            tag = self._getTag()
             tag = self._getTag(self.tag_density)
         self.tags.add(tag)
         self.tag_file.write(f"{path}\t{tag}\n")
@@ -205,15 +204,12 @@ class DirectoryGenerator:
             file_path = os.path.join(path, file_name)
             self._writeFile(file_path)
             tagSet = set()
-            for _ in range(random.randint(1, self.max_tags)):
             if self.untagged_files:
                 min_tags = 1 
             else:
                 min_tags = 0
             for _ in range(random.randint(min_tags, self.max_tags)):
                 tag = self._addTag(os.path.basename(file_path), blacklist=tagSet)
-                tagSet.add(tag)
-            
                 tagSet.add(tag)            
                 if len(self.tags) >= 1 and self.tag_density >= 0.99:
                     break
@@ -234,16 +230,13 @@ class DirectoryGenerator:
         self.id_counter = 0
         self.tags = set()
         # Create Test Directory
-        test_path = os.path.join(self.test_dir, "Generated", name)
         test_path = os.path.join(self.test_dir, name)
         os.makedirs(test_path)
         ''' [DEPRECATED]
         # Add Test Directory to .gitignore
-        self._addGitignore(test_path)
         self._addGitignore(test_path, dir=True)```
         '''
         # Create Tag File
-        with open(os.path.join(self.test_dir, "Generated", name + ".tag"), "w") as tag_file:     
         if os.path.exists(os.path.join(self.test_dir, name + ".tag")):
             console.print("WARNING: Tag File already exists. It will be overwritten", style="critical")
         with open(os.path.join(self.test_dir, name + ".tag"), "w") as tag_file:     
@@ -293,7 +286,6 @@ def main():
         branch_factor=args.branch_factor,
         max_files=args.max_files,
         max_filesize=args.max_filesize,
-        max_tags=args.max_tags
         max_tags=args.max_tags,
         tag_density=args.tag_density,
         untagged_files=args.untagged_files
