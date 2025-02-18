@@ -1,4 +1,8 @@
+# Ignore Generated Tests 
+Automated Test Procedures/Tests/Workspaces/Generated/**/*
+
+# Ignore Rust Generated Files
 **/debug/
 **/target/
-
 **/*.rs.bk
+Automated Test Procedures/Tests/Workspaces/Generated/TestDir.tag
