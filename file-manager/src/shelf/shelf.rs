@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use std::io;
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::result::Result;
+use chrono::{DateTime, Utc};
 
 #[derive(Debug)]
 pub struct Shelf {
@@ -27,7 +28,10 @@ pub struct Tag {
 
 #[derive(Debug)]
 struct Metadata {
-
+    created: DateTime<Utc>,
+    modified: DateTime<Utc>,
+    size: u64,
+    extension: String
 }
 
 #[derive(Debug)]
@@ -44,19 +48,19 @@ pub struct Query {
 
 // TODO: define appropriate errors, include I/O, etc.
 pub enum QueryErr {
-    SyntaxError,
-    KeyError
+    SyntaxError,    // The Query is incorrectly formatted
+    KeyError        // The Query uses tags which do not exist in the Shelf
 }
 
 // TODO: define appropriate errors
 pub enum UpdateErr {
-    PathNotFound,
+    PathNotFound
 }
 
 
 impl File {
-    pub fn new(path: PathBuf, tags: BTreeSet<&'static Tag>) -> Self {
-        File { path, hash: 0, metadata: Metadata {}, tags }
+    pub fn new(path: PathBuf, tags: BTreeSet<&'static Tag>, metadata: Metadata) -> Self {
+        File { path, hash: 0, metadata, tags }
     }
 
     pub fn add_tag(&mut self, tag: &'static Tag) -> bool {
@@ -75,6 +79,7 @@ impl Shelf {
 
     pub async fn refresh(&self) -> Result<bool, io::Error> {
         todo!();
+        // Must also update the 'modifiied', 'size' fields in Metadata
     }
 
     pub fn query(&self, query: Query) -> Result<Vec<&'static File>, QueryErr> {
