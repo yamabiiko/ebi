@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 fxhash = "0.2.1"
 chrono = "0.4.39"
+#serde = { version = "1.0.218", features = ["derive"] }
